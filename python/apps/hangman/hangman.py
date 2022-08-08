@@ -20,6 +20,18 @@ class GameData:
         self.attempts = attempts
 
 
+class WordLetter(UserControl):
+    def __init__(self, letter) -> None:
+        self.letter = letter
+
+    def build(self):
+        return Container(
+            content=Text(self.letter, visible=True),
+            border=border.all(1),
+            width=20,
+        )
+
+
 def main(page: Page):
     page.title = "Hangman"
     page.vertical_alignment = "center"
@@ -35,13 +47,7 @@ def main(page: Page):
     alphabet_letters = Row(wrap=True)
 
     for letter in word_letters:
-        display_word_letters.controls.append(
-            Container(
-                content=Text(letter, visible=True),
-                border=border.all(1),
-                width=20,
-            )
-        )
+        display_word_letters.controls.append(WordLetter(letter))
 
     def letter_clicked(e):
         found = False
