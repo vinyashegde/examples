@@ -4,6 +4,7 @@ import flet
 from flet import (
     Column,
     Container,
+    Image,
     Page,
     Row,
     Text,
@@ -15,30 +16,71 @@ from flet import (
 )
 
 
-class GameData:
+class GameProgress(UserControl):
     def __init__(self, attempts) -> None:
+        super().__init__()
         self.attempts = attempts
+        self.letters_guessed = 0
+        self.attempts_failed = 0
+        self.lives = Text(value=f"Lives: {self.attempts}", text_align="center", size=30)
+        self.img = Image(src=f"/hangman-0.png", width=500, fit="cover")
+
+    def attempt_failed(self):
+        self.attempts = self.attempts - 1
+        self.attempts_failed = self.attempts_failed + 1
+        self.lives.value = f"Lives: {self.attempts}"
+        file_name = "/hangman-" + str(self.attempts_failed) + ".png"
+
+        self.img.src = f"{file_name}"
+        if self.attempts < 0:
+            self.lives.value = "You lost!"
+        self.update()
+
+    def build(self):
+        return Column(
+            controls=[
+                Container(content=self.lives),
+                Container(content=self.img),
+            ]
+        )
 
 
 class WordLetter(UserControl):
     def __init__(self, letter) -> None:
+        super().__init__()
         self.letter = letter
 
+    def reveal(self):
+        self.txt.visible = True
+        self.cont.border = None
+        self.update()
+
     def build(self):
-        return Container(
-            content=Text(self.letter, visible=True),
+        self.txt = Text(self.letter, visible=False, size=20)
+        self.cont = Container(
+            content=self.txt,
             border=border.all(1),
             width=20,
         )
+        return self.cont
 
 
 def main(page: Page):
     page.title = "Hangman"
     page.vertical_alignment = "center"
 
-    game_data = GameData(10)
+    game_data = GameProgress(9)
     lives = Text(value=f"Lives: {game_data.attempts}", text_align="center", size=30)
-    words = ["dog", "helicopter", "flower", "apple"]
+    words = [
+        "dog",
+        "helicopter",
+        "flower",
+        "apple",
+        "refrigerator",
+        "hangman",
+        "stranger",
+        "boat",
+    ]
     i = random.randint(0, len(words) - 1)
     word = words[i]
     word_letters = list(word.upper())
@@ -51,13 +93,21 @@ def main(page: Page):
 
     def letter_clicked(e):
         found = False
-        for letter in word_letters:
-            if e.control.data == letter:
+        for word_letter in display_word_letters.controls:
+            if e.control.data == word_letter.letter:
                 e.control.bgcolor = colors.GREEN_100
+                word_letter.reveal()
+                game_data.letters_guessed = game_data.letters_guessed + 1
                 found = True
         if not found:
-            game_data.attempts = game_data.attempts - 1
-            lives.value = f"Lives: {game_data.attempts}"
+            game_data.attempt_failed()
+            # lives.value = f"Lives: {game_data.attempts}"
+            e.control.bgcolor = colors.BLUE_GREY_100
+
+            # e.control.disabled = True
+        if game_data.letters_guessed == len(display_word_letters.controls):
+            game_data.lives.value = "You won!"
+
         page.update()
 
     for letter in [
@@ -112,10 +162,16 @@ def main(page: Page):
                         alphabet_letters,
                     ],
                 ),
-                Container(content=lives, width=300),
+                # Column(
+                #     controls=[
+                #         Container(content=lives),
+                #         Container(content=game_data.img),
+                #     ]
+                # ),
+                game_data,
             ],
         )
     )
 
 
-flet.app(target=main)
+flet.app(target=main, assets_dir="images")
